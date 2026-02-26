@@ -11,7 +11,6 @@ COPY pyproject.toml .
 COPY nanobot/ nanobot/
 COPY sql/ sql/
 COPY repos/ repos/
-COPY templates/ templates/
 COPY tests/ tests/
 COPY ARCHITECTURE.md .
 COPY DATABASE_SCHEMA.md .
