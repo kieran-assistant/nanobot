@@ -1,0 +1,112 @@
+# Database Schema
+
+## Overview
+All state, memory, and configuration are stored in PostgreSQL for reliability and searchability.
+
+## Core Tables
+
+### 1. system_model
+The system's "self-knowledge" - what it knows about its own components.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| component_type | VARCHAR(50) | 'skill', 'tool', 'wrapper', 'channel' |
+| component_name | VARCHAR(255) | Unique name |
+| definition_json | JSONB | The Schema/Definition |
+| source_layer | VARCHAR(50) | 'kernel', 'adaptive', 'reference', 'generated' |
+| implementation_hash | VARCHAR(64) | SHA-256 for change detection |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+| updated_at | TIMESTAMPTZ | Last update |
+
+### 2. evolution_queue
+The "Todo List" for self-improvement tasks.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| action | VARCHAR(20) | 'CREATE', 'UPDATE', 'REFACTOR', 'DELETE' |
+| target_component | VARCHAR(255) | Target skill/tool name |
+| spec_definition | JSONB | The target Schema/Definition |
+| status | VARCHAR(20) | 'pending', 'staging', 'testing', 'deployed', 'failed' |
+| staging_path | TEXT | Temp path for the clone |
+| test_output | TEXT | Logs from the test runner |
+| error_message | TEXT | Error details if failed |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+| updated_at | TIMESTAMPTZ | Last update |
+
+### 3. capability_graph
+Maps dependencies between skills to enable smart refactoring.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | BIGSERIAL | Primary key |
+| provider_skill | VARCHAR(100) | Skill that HAS the capability |
+| consumer_skill | VARCHAR(100) | Skill that NEEDS the capability |
+| capability_tag | VARCHAR(100) | e.g., 'auth.google', 'database.postgres' |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+
+### 4. reference_patterns
+Stores parsed patterns from external repos (GitNexus).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| source_repo | VARCHAR(100) | 'GitNexus', 'HKUDS' |
+| pattern_name | VARCHAR(255) | Name of function/class |
+| pattern_type | VARCHAR(50) | 'function', 'class', 'workflow' |
+| definition | JSONB | Extracted Schema/Interface |
+| code_snippet | TEXT | Optional reference code |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+
+### 5. messages
+Unified event log for all communications.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | BIGSERIAL | Primary key |
+| session_id | BIGINT | Session identifier |
+| channel | VARCHAR(50) | Communication channel |
+| direction | VARCHAR(10) | 'inbound', 'outbound', 'internal' |
+| role | VARCHAR(20) | 'user', 'assistant', 'system', 'tool' |
+| content | TEXT | Message content |
+| metadata | JSONB | Additional data |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+
+### 6. sessions
+User session tracking.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | BIGSERIAL | Primary key |
+| session_key | VARCHAR(255) | Unique session key |
+| channel | VARCHAR(50) | Channel type |
+| metadata | JSONB | Session data |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+| updated_at | TIMESTAMPTZ | Last update |
+
+### 7. memory
+Long-term memory storage for the agent.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | BIGSERIAL | Primary key |
+| category | VARCHAR(50) | Memory category |
+| key | VARCHAR(255) | Memory key |
+| content | TEXT | Memory content |
+| importance | SMALLINT | Importance score (1-10) |
+| created_at | TIMESTAMPTZ | Creation timestamp |
+
+## Indexes
+
+```sql
+CREATE INDEX idx_system_model_type ON system_model(component_type);
+CREATE INDEX idx_evolution_status ON evolution_queue(status, created_at);
+CREATE INDEX idx_capability_tag ON capability_graph(capability_tag);
+```
+
+## Migrations
+
+The schema is initialized via `sql/schema.sql` when the Docker container starts for the first time.
+
+For production, consider using Alembic for incremental schema migrations.
