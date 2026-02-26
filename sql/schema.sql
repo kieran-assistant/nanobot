@@ -124,3 +124,63 @@ CREATE TABLE context_edges (
 CREATE INDEX idx_context_edges_source ON context_edges(source_node_id);
 CREATE INDEX idx_context_edges_target ON context_edges(target_node_id);
 CREATE INDEX idx_context_edges_rel ON context_edges(relationship);
+
+-- 7. Evolution Observability
+CREATE TABLE IF NOT EXISTS evolution_attempts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    proposal_source VARCHAR(100) NOT NULL,
+    target_component VARCHAR(255) NOT NULL,
+    proposal_payload JSONB DEFAULT '{}'::jsonb,
+    score JSONB DEFAULT '{}'::jsonb,
+    checks_run JSONB DEFAULT '[]'::jsonb,
+    stage VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    failure_reason TEXT,
+    rollback_count INT DEFAULT 0,
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
+    duration_seconds DOUBLE PRECISION
+);
+
+CREATE INDEX IF NOT EXISTS idx_evolution_attempts_started ON evolution_attempts(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evolution_attempts_status ON evolution_attempts(status);
+
+-- 8. Operator Planning Priorities
+CREATE TABLE IF NOT EXISTS operator_priorities (
+    component_name VARCHAR(255) PRIMARY KEY,
+    priority NUMERIC NOT NULL DEFAULT 0.5
+);
+
+-- 9. Source Intelligence
+CREATE TABLE IF NOT EXISTS source_repositories (
+    name VARCHAR(255) PRIMARY KEY,
+    repo_path TEXT NOT NULL,
+    source_type VARCHAR(50) NOT NULL DEFAULT 'local_git',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    last_commit VARCHAR(128),
+    last_synced_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS source_sync_runs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    repo_name VARCHAR(255) NOT NULL,
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
+    status VARCHAR(50) NOT NULL,
+    changed_files JSONB DEFAULT '[]'::jsonb,
+    error_message TEXT
+);
+
+CREATE TABLE IF NOT EXISTS harvested_skills (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    query VARCHAR(255) NOT NULL,
+    source_repo VARCHAR(255) NOT NULL,
+    skill_name VARCHAR(255) NOT NULL,
+    skill_path TEXT NOT NULL,
+    score NUMERIC NOT NULL,
+    signals JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_source_sync_runs_repo ON source_sync_runs(repo_name, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_harvested_skills_query ON harvested_skills(query, created_at DESC);

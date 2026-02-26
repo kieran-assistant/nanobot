@@ -5,13 +5,11 @@ from nanobot.meta.planner import planner
 from nanobot.db.engine import db
 
 @pytest.fixture
-async def setup_db():
-    await db.connect()
+async def setup_db(require_db):
     await db.execute("DELETE FROM reference_patterns WHERE source_repo = 'test_ref'")
     await db.execute("DELETE FROM system_model WHERE component_name = 'analyze_data'")
     await db.execute("DELETE FROM evolution_queue WHERE target_component = 'analyze_data'")
     yield
-    await db.disconnect()
 
 @pytest.mark.asyncio
 async def test_evolution_gap_detection(tmp_path, setup_db):
@@ -50,6 +48,6 @@ async def test_evolution_execution(tmp_path, setup_db):
     from nanobot.meta.schemas import SkillDefinition
     skill_def = SkillDefinition(**prop['spec'])
     
-    assert skill_def.name == "gen_dummy_feature"
+    assert skill_def.name == "gen-dummy-feature"
     assert len(skill_def.tools) == 1
     assert skill_def.tools[0].name == "dummy_feature"

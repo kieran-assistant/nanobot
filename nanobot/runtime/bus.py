@@ -5,6 +5,7 @@ from loguru import logger
 from dataclasses import dataclass
 from datetime import datetime
 import uuid
+import inspect
 
 @dataclass
 class Event:
@@ -30,12 +31,21 @@ class EventBus:
             payload=payload,
             timestamp=datetime.now()
         )
-        
+
         handlers = self.subscribers.get(event_type, [])
+        tasks = []
         for handler in handlers:
             try:
-                asyncio.create_task(handler(event))
+                result = handler(event)
+                if inspect.isawaitable(result):
+                    tasks.append(asyncio.create_task(result))
             except Exception as e:
                 logger.error(f"Error in event handler for {event_type}: {e}")
+
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.error(f"Async handler error for {event_type}: {result}")
 
 bus = EventBus()

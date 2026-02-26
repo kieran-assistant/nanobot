@@ -5,8 +5,9 @@
 import subprocess
 import json
 import sys
+import shlex
 
-def execute({% for p in tool.parameters %}{{ p.name }}{% if not p.required %}=None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}):
+def execute({% for p in tool.parameters %}{{ p.name }}=None{% if not loop.last %}, {% endif %}{% endfor %}):
     """
     {{ tool.description }}
     """
@@ -21,7 +22,7 @@ def execute({% for p in tool.parameters %}{{ p.name }}{% if not p.required %}=No
         # Executor Type: {{ tool.executor_type }}
 {% if tool.executor_type == 'script' %}
         cmd = f"{{ tool.executor_config.command }}"
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(shlex.split(cmd), shell=False, capture_output=True, text=True, timeout=30)
         return json.dumps({"output": result.stdout, "error": result.stderr})
 {% elif tool.executor_type == 'internal' %}
         return json.dumps({"status": "internal_call_required"})

@@ -4,10 +4,8 @@ from nanobot.db.engine import db
 from nanobot.config import settings
 
 @pytest.mark.asyncio
-async def test_database_connection():
+async def test_database_connection(require_db):
     """Test that we can connect and execute a simple query."""
-    await db.connect()
-    
     # Test basic query
     val = await db.fetchval("SELECT 1")
     assert val == 1
@@ -17,14 +15,10 @@ async def test_database_connection():
         "SELECT table_name FROM information_schema.tables WHERE table_name = 'system_model'"
     )
     assert table_name == 'system_model'
-    
-    await db.disconnect()
 
 @pytest.mark.asyncio
-async def test_insert_system_model():
+async def test_insert_system_model(require_db):
     """Test writing to the system_model table."""
-    await db.connect()
-    
     from nanobot.db.repositories import SystemModelRepository
     
     # Insert a dummy component
@@ -42,5 +36,3 @@ async def test_insert_system_model():
     
     # Cleanup
     await db.execute("DELETE FROM system_model WHERE component_type = 'test_tool'")
-    
-    await db.disconnect()

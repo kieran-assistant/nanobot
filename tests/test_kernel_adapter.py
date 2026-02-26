@@ -18,10 +18,8 @@ async def test_tool_wrapper_execution():
     assert "Blocked" in result
 
 @pytest.mark.asyncio
-async def test_registry_sync():
+async def test_registry_sync(require_db):
     """Test that tools are registered in the database."""
-    await db.connect()
-    
     # Initialize the kernel (which triggers registry sync)
     await initialize_kernel()
     
@@ -31,5 +29,3 @@ async def test_registry_sync():
     assert record is not None
     assert record['source_layer'] == "primitive_kernel"
     assert record['definition_json']['name'] == "shell_exec"
-    
-    await db.disconnect()

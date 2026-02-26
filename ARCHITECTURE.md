@@ -32,15 +32,20 @@ The teacher. Monitors external repositories to learn new patterns.
 
 ## Evolution Lifecycle
 
-The system follows a strict Clone-Test-Promote workflow to ensure zero regression:
+The system follows a Stage-Validate-Promote workflow:
 
 ```
 1. INGEST   → Scan external repos (Introspector)
 2. PLAN     → Detect gaps & refactor opportunities (Planner + Architect)
-3. STAGE    → Clone to isolated environment (StagingManager)
-4. VERIFY   → Run syntax checks & tests
-5. PROMOTE  → Atomic swap to production
+3. STAGE    → Generate in isolated staging directory (StagingManager)
+4. VERIFY   → Run syntax checks (with room to add stronger gates)
+5. PROMOTE  → Promote with backup + rollback path
 6. REGISTER → Update system_model and capability_graph
+
+Adoption is governed by `EVOLUTION_PHASE`:
+- `phase1`: assisted mode (human review required for all proposals)
+- `phase2`: low-risk autonomous promotions only
+- `phase3`: broader autonomous promotion with policy guardrails
 ```
 
 ## Key Components
@@ -68,6 +73,15 @@ The Sandbox (`nanobot/runtime/sandbox.py`) executes generated code in isolated s
 4. **Evolution Engine** → Introspector (scan) → Planner (plan) → Architect (refactor) → StagingManager (execute)
 5. **Result** → Update DB → Notify User
 
+## Source Intelligence Loop
+
+The platform includes a source-intelligence loop to continuously mine capabilities from repositories and catalogs:
+1. Discover repositories under `repos/` and sync git updates.
+2. Ingest changed code signatures into `reference_patterns`.
+3. Harvest and rank skill candidates for targeted queries (for example: `telegram`).
+4. Build a synthesis plan selecting best segments from top candidates.
+5. Route implementation through the same security gates, scoring, and staged-adoption policy.
+
 ## Security Considerations
 
 - **No Direct Execution**: Generated code never runs in the main process
@@ -94,6 +108,14 @@ Relationships such as:
 
 ### Integration
 The EvolutionEngine automatically updates the graph when new skills are promoted. The AgentLoop queries the graph via `query_world_model` tool to provide context-aware responses.
+
+## Governance Controls
+
+- **Proposal Scorecards**: Every proposal carries risk, blast-radius, confidence, and dependency-impact scores.
+- **Delivery Plans**: Planner emits patch/test/migration/validation plans before staging.
+- **Security Release Gate**: Threat model and red-team static checks block unsafe promotions.
+- **Capability Maturity**: Skills are tagged `experimental`, `staging-approved`, or `production-approved`; only `production-approved` skills are callable in live mode.
+- **Observability**: Every attempt is tracked in `evolution_attempts` with stage/check/failure/rollback/MTTR data.
 
 ### Example Query
 User: "Why did my Gmail integration stop working?"

@@ -41,7 +41,7 @@ async def test_sandbox_execution(tmp_path):
 @pytest.mark.asyncio
 async def test_staging_lifecycle():
     skill_def = SkillDefinition(
-        name="test_skill",
+        name="test-skill",
         description="A test skill",
         tools=[
             ToolDefinition(
@@ -57,7 +57,7 @@ async def test_staging_lifecycle():
     
     assert result['status'] == 'deployed'
     
-    expected_path = Path("nanobot/skills/test_skill")
+    expected_path = Path("nanobot/skills/test-skill")
     assert expected_path.exists()
     
     if expected_path.exists():
